@@ -2,6 +2,7 @@ import type Decimal from 'break_infinity.js';
 import type { WowCubes, WowHypercubes, WowPlatonicCubes, WowTesseracts } from '../CubeExperimental';
 import { HepteractCraft } from '../Hepteracts';
 import { Category, ResetHistoryEntryUnion } from '../History';
+import { OcteractUpgrade } from '../Octeracts';
 import { IPlatBaseCost } from '../Platonic';
 import type { QuarkHandler } from '../Quark';
 import { SingularityUpgrade } from '../singularity';
@@ -292,6 +293,7 @@ export interface Player {
     resettoggle1: number
     resettoggle2: number
     resettoggle3: number
+    resettoggle4: number
 
     tesseractAutoBuyerToggle: number
     tesseractAutoBuyerAmount: number
@@ -302,7 +304,6 @@ export interface Player {
     particlebuyamount: number
     offeringbuyamount: number
     tesseractbuyamount: number
-
 
     shoptoggles: {
         coin: boolean,
@@ -354,16 +355,41 @@ export interface Player {
         seasonPassY: number,
         seasonPassZ: number,
         challengeTome2: number,
-    }
+        instantChallenge2: number,
+        cubeToQuarkAll: number,
+        cashGrab2: number,
+        seasonPassLost: number,
+        chronometerZ: number,
+        powderAuto: number,
+        offeringEX2: number,
+        obtainiumEX2: number,
+        challenge15Auto: number,
+        extraWarp: number,
+        improveQuarkHept: number,
+        improveQuarkHept2: number,
+        improveQuarkHept3: number,
+        improveQuarkHept4: number,
+        shopImprovedDaily: number,
+        shopImprovedDaily2: number,
+        shopImprovedDaily3: number,
+        shopImprovedDaily4: number
+    },
+    shopConfirmationToggle: boolean,
+    shopBuyMaxToggle: boolean,
+    shopHideToggle: boolean,
+
     autoSacrificeToggle: boolean,
+    autoBuyFragment: boolean,
     autoFortifyToggle: boolean,
     autoEnhanceToggle: boolean,
     autoResearchToggle: boolean,
+    researchBuyMaxToggle: boolean,
     autoResearchMode: 'cheapest' | 'manual'
     autoResearch: number
     autoSacrifice: number
     sacrificeTimer: number
     quarkstimer: number
+    goldenQuarksTimer: number
 
     antPoints: Decimal,
     antUpgrades: (null | number)[]
@@ -397,13 +423,27 @@ export interface Player {
 
     ascensionCount: number
     ascensionCounter: number
+    ascensionCounterReal: number
+    ascensionCounterRealReal: number
+    autoOpenCubes: boolean,
+    openCubes: number
+    autoOpenTesseracts: boolean,
+    openTesseracts: number
+    autoOpenHypercubes: boolean,
+    openHypercubes: number
+    autoOpenPlatonicsCubes: boolean,
+    openPlatonicsCubes: number
     cubeUpgrades: [null, ...number[]]
+    cubeUpgradesBuyMaxToggle: boolean
     platonicUpgrades: number[]
+    saveOfferingToggle: boolean,
     wowCubes: WowCubes
     wowTesseracts: WowTesseracts
     wowHypercubes: WowHypercubes
     wowPlatonicCubes: WowPlatonicCubes
     wowAbyssals: number
+    wowOcteracts: number
+    totalWowOcteracts: number
     cubeBlessings: {
         accelerator: number
         multiplier: number
@@ -499,6 +539,7 @@ export interface Player {
     loadedDec16Vers: boolean
     loadedV253: boolean
     loadedV255: boolean
+    loadedV297Hotfix1: boolean
     version: string
 
     rngCode: number
@@ -518,6 +559,7 @@ export interface Player {
         multiplier: HepteractCraft
     }
     overfluxOrbs: number
+    overfluxOrbsAutoBuy: boolean
     overfluxPowder: number
     dailyPowderResetUses: number
 
@@ -525,33 +567,19 @@ export interface Player {
     mods: string[]
 
     singularityCount: number
+    singularityCounter: number
     goldenQuarks: number
     quarksThisSingularity: number
+    totalQuarksEver: number
+    hotkeys: Record<number, string[]>
+    theme: string
 
-    singularityUpgrades: {
-        goldenQuarks1: SingularityUpgrade
-        goldenQuarks2: SingularityUpgrade
-        goldenQuarks3: SingularityUpgrade
-        starterPack: SingularityUpgrade
-        wowPass: SingularityUpgrade
-        cookies: SingularityUpgrade
-        cookies2: SingularityUpgrade
-        cookies3: SingularityUpgrade
-        cookies4: SingularityUpgrade
-        ascensions: SingularityUpgrade
-        corruptionFourteen: SingularityUpgrade
-        corruptionFifteen: SingularityUpgrade
-        singOfferings1: SingularityUpgrade
-        singOfferings2: SingularityUpgrade
-        singOfferings3: SingularityUpgrade
-        singObtainium1: SingularityUpgrade
-        singObtainium2: SingularityUpgrade
-        singObtainium3: SingularityUpgrade
-        singCubes1: SingularityUpgrade
-        singCubes2: SingularityUpgrade
-        singCubes3: SingularityUpgrade
-    }
+    singularityUpgrades: Record<keyof typeof singularityData, SingularityUpgrade>
+    octeractUpgrades: Record<keyof typeof octeractData, OcteractUpgrade> 
     dailyCodeUsed: boolean
+    hepteractAutoCraftPercentage: number
+    octeractTimer: number
+
 }
 
 export interface GlobalVariables {
@@ -653,7 +681,7 @@ export interface GlobalVariables {
     uFourteenMulti: Decimal
     uFifteenMulti: Decimal
     tuSevenMulti: number
-    currentTab: 
+    currentTab:
         | 'buildings'
         | 'upgrades'
         | 'achievements'
@@ -697,16 +725,11 @@ export interface GlobalVariables {
 
     maxexponent: number
 
-    maxbuyresearch: boolean,
-
     effectiveLevelMult: number
     optimalOfferingTimer: number
     optimalObtainiumTimer: number
 
     runeSum: number
-
-    shopConfirmation: boolean,
-    shopBuyMax: boolean,
 
     globalAntMult: Decimal
     antMultiplier: Decimal
@@ -763,6 +786,7 @@ export interface GlobalVariables {
 
     runescreen: string
     settingscreen: string
+    singularityscreen: string
 
     talismanResourceObtainiumCosts: number[]
     talismanResourceOfferingCosts: number[]
@@ -821,7 +845,6 @@ export interface GlobalVariables {
     hypercubeBonusMultiplier: [null, ...number[]]
     platonicBonusMultiplier: number[]
 
-    buyMaxCubeUpgrades: boolean,
     autoOfferingCounter: number
 
     researchOrderByCost: number[],
@@ -918,15 +941,15 @@ export interface SynergismEvents {
 }
 
 // If changing these, make reset tiers on top, then challenge types, then specific actions
-export type resetNames = 
-    | "prestige" 
-    | "transcension" 
-    | "reincarnation" 
-    | "ascension" 
+export type resetNames =
+    | "prestige"
+    | "transcension"
+    | "reincarnation"
+    | "ascension"
     | "singularity"
-    | "transcensionChallenge" 
-    | "reincarnationChallenge" 
-    | "ascensionChallenge" 
+    | "transcensionChallenge"
+    | "reincarnationChallenge"
+    | "ascensionChallenge"
     | "acceleratorBoost"
 
 // If adding new cube types add them below the last listed type. Thank you

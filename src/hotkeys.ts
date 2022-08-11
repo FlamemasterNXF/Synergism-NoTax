@@ -24,7 +24,7 @@ export const hotkeys = new Map<string, [string, () => unknown]>([
     ['ARROWRIGHT', ['Next tab', () => keyboardTabChange(1)]],
     ['ARROWUP', ['Back a subtab', () => keyboardTabChange(-1, false)]],
     ['ARROWDOWN', ['Next subtab', () => keyboardTabChange(1, false)]],
-    ['SHIFT+A', ['Reset Ascend', () => resetCheck('ascension')]],
+    ['SHIFT+A', ['Reset Ascend', () => resetCheck('ascension')]]
 ]);
 
 document.addEventListener('keydown', event => {
@@ -54,7 +54,6 @@ document.addEventListener('keydown', event => {
 /*const makeSlot = (key: string, descr: string) => {
     const div = document.createElement('div');
     div.classList.add('hotkeyItem');
-
     const span = document.createElement('span');
     span.id = 'actualHotkey';
     span.textContent = key;
@@ -67,40 +66,30 @@ document.addEventListener('keydown', event => {
         https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
         You can also prefix your hotkey with [Ctrl,Shift,Alt]+<key>
         `);
-
         if (typeof newKey !== 'string') return;
-
         // old hotkey
         const oldKey = target.textContent.toUpperCase();
         const toSet = newKey.toUpperCase();
-
         if (newKey.length === 0)
             return Alert(`You didn't enter anything, canceled!`);
-
         if (hotkeys.has(toSet)) {
             return Alert(`That key is already binded to an action, use another key instead!`);
         } else if (hotkeys.has(oldKey)) {
             const old = hotkeys.get(oldKey)!;
-
             hotkeys.set(toSet, old);
             hotkeys.delete(oldKey);
-
             target.textContent = toSet;
         } else {
             return Alert(`No hotkey is triggered by ${oldKey}!`);
         }
     });
-
     const p = document.createElement('p');
     p.id = 'hotKeyDesc';
     p.textContent = descr;
-
     div.appendChild(span);
     div.appendChild(p);
-
     return div;
 }
-
  */
 
 export const startHotkeys = () => {
@@ -108,10 +97,8 @@ export const startHotkeys = () => {
 
     /*for (const child of Array.from(hotkey.children))
         hotkey.removeChild(child);
-
     for (const [key, [descr]] of [...hotkeys.entries()]) {
         const div = makeSlot(key, descr);
-
         hotkey.appendChild(div);
     }
      */

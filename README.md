@@ -1,5 +1,4 @@
 # Synergism Plus
-
 ## Modding
 ### Getting Started
 Welcome to Synergism Plus! Here's a quick and easy to understand guide on how to get started making your own mod!<br>
@@ -41,5 +40,4 @@ Have fun!
 ### Adding your Mod to Synergism Plus
 Are you finished with your Mod and ready to share it with the world? Here's a simple guide on how to do that!<br>
 First, be sure there are no errors. No Mods that cause errors will be added, sorry (unless your error is at `hotkeys.ts:107`).<br>
-Then simply create a PR (pull request) to the Synergism Plus repo, I'll merge it as soon as I see it! Once I do your Mod will be on the main site! 
-
+Then simply create a PR (pull request) to the Synergism Plus repo, I'll merge it as soon as I see it! Once I do your Mod will be on the main site!

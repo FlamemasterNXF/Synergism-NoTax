@@ -3,27 +3,28 @@ import { Globals as G, modNames, modIds } from './Variables';
 import { player, format, formatTimeShort, inMod } from './Synergism';
 import { version } from './Config';
 import { CalcECC } from './Challenges';
-import { calculateSigmoidExponential, calculateMaxRunes, calculateRuneExpToLevel, calculateSummationLinear, calculateRecycleMultiplier, calculateCorruptionPoints, CalcCorruptionStuff, calculateAutomaticObtainium, calculateTimeAcceleration, calcAscensionCount, calculateCubeQuarkMultiplier, calculateSummationNonLinear } from './Calculate';
+import { calculateSigmoidExponential, calculateMaxRunes, calculateRuneExpToLevel, calculateSummationLinear, calculateRecycleMultiplier, calculateCorruptionPoints, CalcCorruptionStuff, calculateAutomaticObtainium, calculateTimeAcceleration, calcAscensionCount, calculateCubeQuarkMultiplier, calculateSummationNonLinear, calculateTotalOcteractCubeBonus, calculateTotalOcteractQuarkBonus, octeractGainPerSecond } from './Calculate';
 import { displayRuneInformation } from './Runes';
 import { showSacrifice } from './Ants';
 import { sumContents } from './Utility';
 import { getShopCosts, shopData, shopUpgradeTypes } from './Shop';
 import { quarkHandler } from './Quark';
 import type { Player, ZeroToFour } from './types/Synergism';
-import { hepteractTypeList, hepteractTypes } from './Hepteracts';
+import type { hepteractTypes } from './Hepteracts';
+import { hepteractTypeList } from './Hepteracts';
 import { DOMCacheGetOrSet } from './Cache/DOM';
-import { IMultiBuy } from './Cubes';
+import type { IMultiBuy } from './Cubes';
 import { calculateMaxTalismanLevel } from './Talismans';
 import { getGoldenQuarkCost } from './singularity';
+import { loadStatisticsUpdate } from './Statistics';
 
 export const visualUpdateBuildings = () => {
-    if (G['currentTab'] !== "buildings") {
-        console.log("buildings update happened not in buildings")
+    if (G['currentTab'] !== 'buildings') {
         return;
     }
-    
+
     //When you're in Building --> Coin, update these.
-    if (G['buildingSubTab'] === "coin") {
+    if (G['buildingSubTab'] === 'coin') {
         // For the display of Coin Buildings
         const upper = ['produceFirst', 'produceSecond', 'produceThird', 'produceFourth', 'produceFifth'] as const;
         const names = [null, 'Workers', 'Investments', 'Printers', 'Coin Mints', 'Alchemies']
@@ -43,7 +44,6 @@ export const visualUpdateBuildings = () => {
             const ith = G['ordinals'][i - 1 as ZeroToFour];
             const numWord = G[numWords[i-1]];
             const ele = DOMCacheGetOrSet("buycoinmulti"+i)
-
             if(ele&&inMod("ng-"))ele.textContent = inMod("bbshards")?"BBSHARDS": inMod("bbshards")?"BBSHARDS":"Cost: " + format(player.producerMultiCost[i-1],0) + " " + names[i] + "."
             DOMCacheGetOrSet("buildtext" + (2 * i - 1)).textContent = inMod("bbshards")?"BBSHARDS": names[i] + ": " + format(player[`${ith}OwnedCoin` as const], 0, true) + " [+" + format(player[`${ith}GeneratedCoin` as const]) + "]"+(inMod("coingain")?` x${format(numWord,2)}`:"")
             DOMCacheGetOrSet("buycoin" + i).textContent = inMod("bbshards")?"BBSHARDS": "Cost: " + format(player[`${ith}CostCoin` as const]) + " coins."
@@ -71,18 +71,17 @@ export const visualUpdateBuildings = () => {
             //`Due to your excessive wealth, coin production is divided by ${format(G['taxdivisor'], 2)} to pay taxes!`
     }
 
-    if (G['buildingSubTab'] === "diamond") {
+    if (G['buildingSubTab'] === 'diamond') {
         // For the display of Diamond Buildings
         const upper = ['produceFirstDiamonds', 'produceSecondDiamonds', 'produceThirdDiamonds', 'produceFourthDiamonds', 'produceFifthDiamonds'] as const;
         const names = [null, 'Refineries', 'Coal Plants', 'Coal Rigs', 'Pickaxes', 'Pandoras Boxes']
-        const perSecNames = [null, "Crystal/sec", "Ref./sec", "Plants/sec", "Rigs/sec", "Pickaxes/sec"]
+        const perSecNames = [null, 'Crystal/sec', 'Ref./sec', 'Plants/sec', 'Rigs/sec', 'Pickaxes/sec']
 
         DOMCacheGetOrSet("prestigeshardinfo").textContent = inMod("bbshards")?"BBSHARDS": "You have " + format(player.prestigeShards, 2) + " Crystals, multiplying Coin production by " + format(G['prestigeMultiplier'], 2) + "x."
 
         for (let i = 1; i <= 5; i++) {
             const place = G[upper[i-1]];
             const ith = G['ordinals'][i - 1 as ZeroToFour];
-
             DOMCacheGetOrSet("prestigetext" + (2 * i - 1)).textContent = inMod("bbshards")?"BBSHARDS": names[i] + ": " + format(player[`${ith}OwnedDiamonds` as const], 0, true) + " [+" + format(player[`${ith}GeneratedDiamonds` as const], 2) + "]"
             DOMCacheGetOrSet("prestigetext" + (2 * i)).textContent = inMod("bbshards")?"BBSHARDS": perSecNames[i] + ": " + format((place).div(G['crystaltax']).times(40), 2)
             DOMCacheGetOrSet("buydiamond" + i).textContent = inMod("bbshards")?"BBSHARDS": "Cost: " + format(player[`${ith}CostDiamonds` as const], 2) + " Diamonds"
@@ -100,11 +99,11 @@ export const visualUpdateBuildings = () => {
             `Due to your excessive wealth, all Diamond Buildings are divided by ${format(G['crystaltax'], 2)} to pay taxes!`
     }
 
-    if (G['buildingSubTab'] === "mythos") {
+    if (G['buildingSubTab'] === 'mythos') {
         // For the display of Mythos Buildings
         const upper = ['produceFirstMythos', 'produceSecondMythos', 'produceThirdMythos', 'produceFourthMythos', 'produceFifthMythos'] as const;
         const names = [null, 'Augments', 'Enchantments', 'Wizards', 'Oracles', 'Grandmasters']
-        const perSecNames = [null, "Shards/sec", "Augments/sec", "Enchantments/sec", "Wizards/sec", "Oracles/sec"]
+        const perSecNames = [null, 'Shards/sec', 'Augments/sec', 'Enchantments/sec', 'Wizards/sec', 'Oracles/sec']
 
         DOMCacheGetOrSet("transcendshardinfo").textContent = inMod("bbshards")?"BBSHARDS": "You have " + format(player.transcendShards, 2) + " Mythos Shards, providing " + format(G['totalMultiplierBoost'], 0, true) + " Multiplier Power boosts."
 
@@ -128,12 +127,12 @@ export const visualUpdateBuildings = () => {
             `Due to your excessive wealth, all Mythos Buildings are divided by ${format(G['mythostax'], 2)} to pay taxes!`
     }
 
-    if (G['buildingSubTab'] === "particle") {
+    if (G['buildingSubTab'] === 'particle') {
 
         // For the display of Particle Buildings
         const upper = ['FirstParticles', 'SecondParticles', 'ThirdParticles', 'FourthParticles', 'FifthParticles'] as const;
         const names = ['Protons', 'Elements', 'Pulsars', 'Quasars', 'Galactic Nuclei'];
-        const perSecNames = ["Atoms/sec", "Protons/sec", "Elements/sec", "Pulsars/sec", "Quasars/sec"]
+        const perSecNames = ['Atoms/sec', 'Protons/sec', 'Elements/sec', 'Pulsars/sec', 'Quasars/sec']
 
         for (let i = 1; i <= 5; i++) {
             const ith = G['ordinals'][i - 1 as ZeroToFour];
@@ -162,7 +161,7 @@ export const visualUpdateBuildings = () => {
             `Due to your excessive wealth, all Particle Buildings are divided by ${format(G['particletax'], 2)} to pay taxes!`
     }
 
-    if (G['buildingSubTab'] === "tesseract") {
+    if (G['buildingSubTab'] === 'tesseract') {
         const names = [null, 'Dot', 'Vector', 'Three-Space', 'Bent Time', 'Hilbert Space']
         const perSecNames = [null, '+Constant/sec', 'Dot/sec', 'Vector/sec', 'Three-Space/sec', 'Bent Time/sec']
         for (let i = 1; i <= 5; i++) {
@@ -188,9 +187,10 @@ export const visualUpdateUpgrades = () => {}
 export const visualUpdateAchievements = () => {}
 
 export const visualUpdateRunes = () => {
-    if (G['currentTab'] !== "runes")
+    if (G['currentTab'] !== 'runes') {
         return
-    if (G['runescreen'] === "runes") { //Placeholder and place work similarly to buildings, except for the specific Talismans.
+    }
+    if (G['runescreen'] === 'runes') { //Placeholder and place work similarly to buildings, except for the specific Talismans.
 
         const talismans = [
             'rune1Talisman',
@@ -204,7 +204,9 @@ export const visualUpdateRunes = () => {
 
         for (let i = 1; i <= 7; i++) { //First one updates level, second one updates TNL, third updates orange bonus levels
             let place = G[talismans[i-1]];
-            if (i > 5) place = 0;
+            if (i > 5) {
+                place = 0;
+            }
             const runeLevel = player.runelevels[i - 1]
             const maxLevel = calculateMaxRunes(i)
             DOMCacheGetOrSet('rune' + i + 'level').childNodes[0].textContent = inMod("bbshards")?"BBSHARDS": "Level: " + format(runeLevel) + "/" + format(maxLevel)
@@ -220,16 +222,33 @@ export const visualUpdateRunes = () => {
 
         DOMCacheGetOrSet("offeringExperienceValue").textContent = inMod("bbshards")?"BBSHARDS": "Gain " + format((1 + Math.min(player.highestchallengecompletions[1], 1) + 1 / 25 * player.highestchallengecompletions[1] + 0.6 * player.researches[22] + 0.3 * player.researches[23] + 3 / 25 * player.upgrades[66] + 2 * player.upgrades[61]) * calculateRecycleMultiplier(), 2, true) + "* EXP per offering sacrificed."
         DOMCacheGetOrSet("offeringRecycleInfo").textContent = inMod("bbshards")?"BBSHARDS": "You have " + format((5 * player.achievements[80] + 5 * player.achievements[87] + 5 * player.achievements[94] + 5 * player.achievements[101] + 5 * player.achievements[108] + 5 * player.achievements[115] + 7.5 * player.achievements[122] + 7.5 * player.achievements[129] + 5 * player.upgrades[61] + Math.min(25, G['rune4level'] / 16) + 0.5 * player.cubeUpgrades[2]), 2, true) + "% chance of recycling your offerings. This multiplies EXP gain by " + format(calculateRecycleMultiplier(), 2, true) + "!"
+
+        const calculateRecycle = calculateRecycleMultiplier();
+        const allRuneExpAdditiveMultiplier = sumContents([
+            // Base amount multiplied per offering
+            1 * calculateRecycle,
+            // +1 if C1 completion
+            Math.min(1, player.highestchallengecompletions[1]),
+            // +0.10 per C1 completion
+            0.4 / 10 * player.highestchallengecompletions[1],
+            // Research 5x2
+            0.6 * player.researches[22],
+            // Research 5x3
+            0.3 * player.researches[23],
+            // Particle Upgrade 1x1
+            2 * player.upgrades[61]
+        ]);
     }
 
-    if (G['runescreen'] === "talismans") {
+    if (G['runescreen'] === 'talismans') {
         for (let i = 0; i < 7; i++) {
             const maxTalismanLevel = calculateMaxTalismanLevel(i);
             DOMCacheGetOrSet('talisman' + (i+1) + 'level').textContent = inMod("bbshards")?"BBSHARDS":"Level " + format(player.talismanLevels[i], 0, true) + "/" + format(maxTalismanLevel, 0, true)
+            DOMCacheGetOrSet(`talisman${i + 1}level`).textContent = inMod("bbshards")?"BBSHARDS":(player.ascensionCount > 0 ? '' : 'Level ') + format(player.talismanLevels[i]) + '/' + format(maxTalismanLevel)
         }
     }
 
-    if (G['runescreen'] === "blessings") {
+    if (G['runescreen'] === 'blessings') {
         const blessingMultiplierArray = [0, 8, 10, 6.66, 2, 1]
         let t = 0;
         for (let i = 1; i <= 5; i++) {
@@ -248,11 +267,11 @@ export const visualUpdateRunes = () => {
         }
     }
 
-    if (G['runescreen'] === "spirits") {
+    if (G['runescreen'] === 'spirits') {
         const spiritMultiplierArray = [0, 1, 1, 20, 1, 100]
         const subtract = [0, 0, 0, 1, 0, 0]
         for (let i = 1; i <= 5; i++) {
-            spiritMultiplierArray[i] *= (calculateCorruptionPoints() / 400)
+            spiritMultiplierArray[i] *= calculateCorruptionPoints() / 400
             DOMCacheGetOrSet(`runeSpiritLevel${i}Value`).textContent = inMod("bbshards")?"BBSHARDS": format(player.runeSpiritLevels[i], 0, true)
             DOMCacheGetOrSet(`runeSpiritPower${i}Value1`).textContent = inMod("bbshards")?"BBSHARDS": format(G['runeSpirits'][i])
             const levelsPurchasable = calculateSummationLinear(player.runeSpiritLevels[i], G['spiritBaseCost'], player.runeshards, player.runeSpiritBuyAmount)[0] - player.runeSpiritLevels[i]
@@ -267,16 +286,18 @@ export const visualUpdateRunes = () => {
 }
 
 export const visualUpdateChallenges = () => {
-    if (G['currentTab'] !== "challenges")
+    if (G['currentTab'] !== 'challenges') {
         return
+    }
     if (player.researches[150] > 0) {
         DOMCacheGetOrSet("autoIncrementerAmount").textContent = inMod("bbshards")?"BBSHARDS": format(G['autoChallengeTimerIncrement'], 2) + "s"
     }
 }
 
 export const visualUpdateResearch = () => {
-    if (G['currentTab'] !== "researches")
+    if (G['currentTab'] !== 'researches') {
         return
+    }
 
     if (player.researches[61] > 0) {
         DOMCacheGetOrSet("automaticobtainium").textContent = inMod("bbshards")?"BBSHARDS": "Thanks to researches you automatically gain " + format(calculateAutomaticObtainium() * calculateTimeAcceleration(), 3, true) + " Obtainium per real life second."
@@ -284,15 +305,16 @@ export const visualUpdateResearch = () => {
 }
 
 export const visualUpdateAnts = () => {
-    if (G['currentTab'] !== "ants")
+    if (G['currentTab'] !== 'ants') {
         return
-    DOMCacheGetOrSet("crumbcount").textContent = inMod("bbshards")?"BBSHARDS":"You have " + format(player.antPoints, 2) + " Galactic Crumbs [" + format(G['antOneProduce'], 2) + "/s], providing a " + format(Decimal.pow(Decimal.max(1, player.antPoints), 100000 + calculateSigmoidExponential(49900000, (player.antUpgrades[1]! + G['bonusant2']) / 5000 * 500 / 499))) + "x Coin Multiplier."
-    const mode = player.autoAntSacrificeMode === 2 ? "Real-time" : "In-game time";
-    const timer = player.autoAntSacrificeMode === 2 ? player.antSacrificeTimerReal : player.antSacrificeTimer;
-    DOMCacheGetOrSet("autoAntSacrifice").textContent = inMod("bbshards")?"BBSHARDS": `Sacrifice when the timer is at least ${player.autoAntSacTimer} seconds (${mode}), Currently: ${format(timer)}`
-    if (player.achievements[173] === 1) {
-        DOMCacheGetOrSet("antSacrificeTimer").textContent = inMod("bbshards")?"BBSHARDS": formatTimeShort(player.antSacrificeTimer);
-        showSacrifice();
+        DOMCacheGetOrSet("crumbcount").textContent = inMod("bbshards") ? "BBSHARDS" : "You have " + format(player.antPoints, 2) + " Galactic Crumbs [" + format(G['antOneProduce'], 2) + "/s], providing a " + format(Decimal.pow(Decimal.max(1, player.antPoints), 100000 + calculateSigmoidExponential(49900000, (player.antUpgrades[1]! + G['bonusant2']) / 5000 * 500 / 499))) + "x Coin Multiplier."
+        const mode = player.autoAntSacrificeMode === 2 ? "Real-time" : "In-game time";
+        const timer = player.autoAntSacrificeMode === 2 ? player.antSacrificeTimerReal : player.antSacrificeTimer;
+        DOMCacheGetOrSet("autoAntSacrifice").textContent = inMod("bbshards") ? "BBSHARDS" : `Sacrifice when the timer is at least ${player.autoAntSacTimer} seconds (${mode}), Currently: ${format(timer)}`
+        if (player.achievements[173] === 1) {
+            DOMCacheGetOrSet("antSacrificeTimer").textContent = inMod("bbshards") ? "BBSHARDS" : formatTimeShort(player.antSacrificeTimer);
+            showSacrifice();
+        }
     }
 }
 
@@ -304,154 +326,179 @@ interface cubeNames {
 }
 
 export const visualUpdateCubes = () => {
-    if (G['currentTab'] !== "cubes")
+    if (G['currentTab'] !== 'cubes') {
         return
-    DOMCacheGetOrSet("cubeToQuarkTimerValue").textContent = inMod("bbshards")?"BBSHARDS": format(Math.floor(player.dayTimer / 3600), 0) + " Hours " + format(Math.floor(player.dayTimer / 60 % 60), 0) + " Mins " + format(Math.floor(player.dayTimer % 60), 0) + " Secs "
+        DOMCacheGetOrSet("cubeToQuarkTimerValue").textContent = inMod("bbshards") ? "BBSHARDS" : format(Math.floor(player.dayTimer / 3600), 0) + " Hours " + format(Math.floor(player.dayTimer / 60 % 60), 0) + " Mins " + format(Math.floor(player.dayTimer % 60), 0) + " Secs "
 
-    const cubeMult = (player.shopUpgrades.cubeToQuark) ? 1.5 : 1;
-    const tesseractMult = (player.shopUpgrades.tesseractToQuark) ? 1.5 : 1;
-    const hypercubeMult = (player.shopUpgrades.hypercubeToQuark) ? 1.5 : 1;
-    const platonicMult = 1.5;
+        const cubeMult = (player.shopUpgrades.cubeToQuark) ? 1.5 : 1;
+        const tesseractMult = (player.shopUpgrades.tesseractToQuark) ? 1.5 : 1;
+        const hypercubeMult = (player.shopUpgrades.hypercubeToQuark) ? 1.5 : 1;
+        const platonicMult = 1.5;
 
-    const toNextQuark: cubeNames = {
-        cube: Number(player.wowCubes.checkCubesToNextQuark(5, cubeMult, player.cubeQuarkDaily, player.cubeOpenedDaily)),
-        tesseract: Number(player.wowTesseracts.checkCubesToNextQuark(7, tesseractMult, player.tesseractQuarkDaily, player.tesseractOpenedDaily)),
-        hypercube: Number(player.wowHypercubes.checkCubesToNextQuark(10, hypercubeMult, player.hypercubeQuarkDaily, player.hypercubeOpenedDaily)),
-        platonicCube: Number(player.wowPlatonicCubes.checkCubesToNextQuark(15, platonicMult, player.platonicCubeQuarkDaily, player.platonicCubeOpenedDaily)),
-    }
-
-    const names = Object.keys(toNextQuark) as (keyof cubeNames)[]
-    for (const name of names) {
-        DOMCacheGetOrSet(`${name}QuarksTodayValue`).textContent = inMod("bbshards")?"BBSHARDS": format(player[`${name}QuarkDaily` as const]);
-        DOMCacheGetOrSet(`${name}QuarksOpenTodayValue`).textContent = inMod("bbshards")?"BBSHARDS": format(player[`${name}OpenedDaily` as const]);
-        DOMCacheGetOrSet(`${name}QuarksOpenRequirementValue`).textContent = inMod("bbshards")?"BBSHARDS": format(Math.max(1, toNextQuark[name]))
-        
-        // Change color of requirement text if 1 or less required :D
-        DOMCacheGetOrSet(`${name}QuarksOpenRequirement`).style.color = (Math.max(1, toNextQuark[name]) === 1)? 'gold': 'white'
-        if (DOMCacheGetOrSet(`${name}QuarksOpenRequirementValue`).style.color !== 'gold')
-            DOMCacheGetOrSet(`${name}QuarksOpenRequirementValue`).style.color === 'gold'
-    }
-    
-    let accuracy;
-    switch (player.subtabNumber) {
-        case 0: {
-            DOMCacheGetOrSet("cubeQuantity").textContent = inMod("bbshards")?"BBSHARDS": format(player.wowCubes, 0, true)
-            const cubeArray = [null, player.cubeBlessings.accelerator, player.cubeBlessings.multiplier, player.cubeBlessings.offering, player.cubeBlessings.runeExp, player.cubeBlessings.obtainium, player.cubeBlessings.antSpeed, player.cubeBlessings.antSacrifice, player.cubeBlessings.antELO, player.cubeBlessings.talismanBonus, player.cubeBlessings.globalSpeed]
-
-            accuracy = [null, 2, 2, 2, 2, 2, 2, 2, 1, 4, 3]
-            for (let i = 1; i <= 10; i++) {
-                let augmentAccuracy = 0;
-                if (cubeArray[i]! >= 1000 && i !== 6) {
-                    augmentAccuracy += 2;
-                }
-                DOMCacheGetOrSet(`cubeBlessing${i}Amount`).textContent = inMod("bbshards")?"BBSHARDS":`x${format(cubeArray[i], 0, true)}`
-                DOMCacheGetOrSet(`cubeBlessing${i}Effect`).textContent = inMod("bbshards")?"BBSHARDS":`+${format(100 * (G['cubeBonusMultiplier'][i]! - 1), accuracy[i]! + augmentAccuracy, true)}%`
-                if (i === 1 || i === 8 || i === 9) {
-                    DOMCacheGetOrSet(`cubeBlessing${i}Effect`).textContent = inMod("bbshards")?"BBSHARDS":`+${format(G['cubeBonusMultiplier'][i] - 1, accuracy[i]! + augmentAccuracy, true)}`
-                }
-            }
-            DOMCacheGetOrSet("cubeBlessingTotalAmount").textContent = inMod("bbshards")?"BBSHARDS":format(sumContents(cubeArray.slice(1) as number[]), 0, true);
-            break;
+        const toNextQuark: cubeNames = {
+            cube: Number(player.wowCubes.checkCubesToNextQuark(5, cubeMult, player.cubeQuarkDaily, player.cubeOpenedDaily)),
+            tesseract: Number(player.wowTesseracts.checkCubesToNextQuark(7, tesseractMult, player.tesseractQuarkDaily, player.tesseractOpenedDaily)),
+            hypercube: Number(player.wowHypercubes.checkCubesToNextQuark(10, hypercubeMult, player.hypercubeQuarkDaily, player.hypercubeOpenedDaily)),
+            platonicCube: Number(player.wowPlatonicCubes.checkCubesToNextQuark(15, platonicMult, player.platonicCubeQuarkDaily, player.platonicCubeOpenedDaily))
         }
-        case 1: {
-            DOMCacheGetOrSet("tesseractQuantity").textContent = inMod("bbshards")?"BBSHARDS": format(player.wowTesseracts, 0, true)
-            const tesseractArray = [null, player.tesseractBlessings.accelerator, player.tesseractBlessings.multiplier, player.tesseractBlessings.offering, player.tesseractBlessings.runeExp, player.tesseractBlessings.obtainium, player.tesseractBlessings.antSpeed, player.tesseractBlessings.antSacrifice, player.tesseractBlessings.antELO, player.tesseractBlessings.talismanBonus, player.tesseractBlessings.globalSpeed]
-            accuracy = [null, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-            for (let i = 1; i <= 10; i++) {
-                let augmentAccuracy = 0;
-                if (tesseractArray[i]! >= 1000 && i !== 6) {
-                    augmentAccuracy += 2;
-                }
-                DOMCacheGetOrSet(`tesseractBlessing${i}Amount`).textContent = inMod("bbshards")?"BBSHARDS":`x${format(tesseractArray[i], 0, true)}`
-                DOMCacheGetOrSet(`tesseractBlessing${i}Effect`).textContent = inMod("bbshards")?"BBSHARDS":`+${format(100 * (G['tesseractBonusMultiplier'][i]! - 1), accuracy[i]! + augmentAccuracy, true)}%`
-            }
-            DOMCacheGetOrSet("tesseractBlessingTotalAmount").textContent = inMod("bbshards")?"BBSHARDS":format(sumContents(tesseractArray.slice(1) as number[]), 0, true);
-            break;
-        }
-        case 2: {
-            DOMCacheGetOrSet("hypercubeQuantity").textContent = inMod("bbshards")?"BBSHARDS": format(player.wowHypercubes, 0, true)
-            const hypercubeArray = [null, player.hypercubeBlessings.accelerator, player.hypercubeBlessings.multiplier, player.hypercubeBlessings.offering, player.hypercubeBlessings.runeExp, player.hypercubeBlessings.obtainium, player.hypercubeBlessings.antSpeed, player.hypercubeBlessings.antSacrifice, player.hypercubeBlessings.antELO, player.hypercubeBlessings.talismanBonus, player.hypercubeBlessings.globalSpeed]
-            accuracy = [null, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-            for (let i = 1; i <= 10; i++) {
-                let augmentAccuracy = 0;
-                if (hypercubeArray[i]! >= 1000) {
-                    augmentAccuracy += 2;
-                }
-                DOMCacheGetOrSet(`hypercubeBlessing${i}Amount`).textContent = inMod("bbshards")?"BBSHARDS":`x${format(hypercubeArray[i], 0, true)}`
-                DOMCacheGetOrSet(`hypercubeBlessing${i}Effect`).textContent = inMod("bbshards")?"BBSHARDS":`+${format(100 * (G['hypercubeBonusMultiplier'][i]! - 1), accuracy[i]! + augmentAccuracy, true)}%`
-            }
-            DOMCacheGetOrSet("hypercubeBlessingTotalAmount").textContent = inMod("bbshards")?"BBSHARDS":format(sumContents(hypercubeArray.slice(1) as number[]), 0, true);
-            break;
-        }
-        case 3: {
-            DOMCacheGetOrSet("platonicQuantity").textContent = inMod("bbshards")?"BBSHARDS": format(player.wowPlatonicCubes, 0, true)
-            const platonicArray = [player.platonicBlessings.cubes, player.platonicBlessings.tesseracts, player.platonicBlessings.hypercubes, player.platonicBlessings.platonics, player.platonicBlessings.hypercubeBonus, player.platonicBlessings.taxes, player.platonicBlessings.scoreBonus, player.platonicBlessings.globalSpeed]
-            const DRThreshold = [4e6, 4e6, 4e6, 8e4, 1e4, 1e4, 1e4, 1e4]
-            accuracy = [5, 5, 5, 5, 2, 3, 3, 2]
-            for (let i = 0; i < platonicArray.length; i++) {
-                let augmentAccuracy = 0;
-                if (platonicArray[i] >= DRThreshold[i]) {
-                    augmentAccuracy += 1;
-                }
-                DOMCacheGetOrSet(`platonicBlessing${i + 1}Amount`).textContent = inMod("bbshards")?"BBSHARDS": `x${format(platonicArray[i], 0, true)}`
-                DOMCacheGetOrSet(`platonicBlessing${i + 1}Effect`).textContent = inMod("bbshards")?"BBSHARDS": `+${format(100 * (G['platonicBonusMultiplier'][i] - 1), accuracy[i] + augmentAccuracy, true)}%`
-            }
-            DOMCacheGetOrSet("platonicBlessingTotalAmount").textContent = inMod("bbshards")?"BBSHARDS": format(sumContents(platonicArray), 0, true);
-            break;
-        }
-        case 4:
-            DOMCacheGetOrSet("cubeAmount2").textContent = inMod("bbshards")?"BBSHARDS": `You have ${format(player.wowCubes, 0, true)} Wow! Cubes =)`
-            break;
-        case 5:
-            break;
-        case 6:
-            DOMCacheGetOrSet('hepteractQuantity').textContent = inMod("bbshards")?"BBSHARDS": format(player.wowAbyssals, 0, true)
 
-            //Update the grid
-            hepteractTypeList.forEach((type) => {
-                UpdateHeptGridValues(type);
-            });
+        const names = Object.keys(toNextQuark) as (keyof cubeNames)[]
+        for (const name of names) {
+            DOMCacheGetOrSet(`${name}QuarksTodayValue`).textContent = inMod("bbshards") ? "BBSHARDS" : format(player[`${name}QuarkDaily` as const]);
+            DOMCacheGetOrSet(`${name}QuarksOpenTodayValue`).textContent = inMod("bbshards") ? "BBSHARDS" : format(player[`${name}OpenedDaily` as const]);
+            DOMCacheGetOrSet(`${name}QuarksOpenRequirementValue`).textContent = inMod("bbshards") ? "BBSHARDS" : format(Math.max(1, toNextQuark[name]))
+            // Change color of requirement text if 1 or less required :D
+            DOMCacheGetOrSet(`${name}QuarksOpenRequirement`).style.color = (Math.max(1, toNextQuark[name]) === 1) ? 'gold' : 'white'
+            if (DOMCacheGetOrSet(`${name}QuarksOpenRequirementValue`).style.color !== 'gold') {
+                DOMCacheGetOrSet(`${name}QuarksOpenRequirementValue`).style.color === 'gold'
+            }
+        }
 
-            //orbs
-            DOMCacheGetOrSet('heptGridOrbBalance').textContent = inMod("bbshards")?"BBSHARDS": format(player.overfluxOrbs)
-            DOMCacheGetOrSet('heptGridOrbEffect').textContent = inMod("bbshards")?"BBSHARDS": format(100 * (-1 + calculateCubeQuarkMultiplier()), 2, true) + '%'
+        let accuracy;
+        switch (player.subtabNumber) {
+            case 0: {
+                if (player.autoOpenCubes) {
+                    DOMCacheGetOrSet('openCubes').textContent = `Auto Open ${format(player.openCubes, 0)}%`;
+                }
+                DOMCacheGetOrSet('cubeQuantity').textContent = inMod("bbshards") ? "BBSHARDS" : format(player.wowCubes, 0, true)
+                const cubeArray = [null, player.cubeBlessings.accelerator, player.cubeBlessings.multiplier, player.cubeBlessings.offering, player.cubeBlessings.runeExp, player.cubeBlessings.obtainium, player.cubeBlessings.antSpeed, player.cubeBlessings.antSacrifice, player.cubeBlessings.antELO, player.cubeBlessings.talismanBonus, player.cubeBlessings.globalSpeed]
 
-            //powder
-            DOMCacheGetOrSet('heptGridPowderBalance').textContent = inMod("bbshards")?"BBSHARDS": format(player.overfluxPowder)
-            DOMCacheGetOrSet('heptGridPowderWarps').textContent = inMod("bbshards")?"BBSHARDS": format(player.dailyPowderResetUses)
-            break;
-        default:
-            // console.log(`player.subtabNumber (${player.subtabNumber}) was outside of the allowed range (${subTabsInMainTab(8).subTabList.length}) for the cube tab`);
-            break;
+                accuracy = [null, 2, 2, 2, 2, 2, 2, 2, 1, 4, 3]
+                for (let i = 1; i <= 10; i++) {
+                    let augmentAccuracy = 0;
+                    if (cubeArray[i]! >= 1000 && i !== 6) {
+                        augmentAccuracy += 2;
+                    }
+                    DOMCacheGetOrSet(`cubeBlessing${i}Amount`).textContent = inMod("bbshards") ? "BBSHARDS" : `x${format(cubeArray[i], 0, true)}`
+                    DOMCacheGetOrSet(`cubeBlessing${i}Effect`).textContent = inMod("bbshards") ? "BBSHARDS" : `+${format(100 * (G['cubeBonusMultiplier'][i]! - 1), accuracy[i]! + augmentAccuracy, true)}%`
+                    if (i === 1 || i === 8 || i === 9) {
+                        DOMCacheGetOrSet(`cubeBlessing${i}Effect`).textContent = inMod("bbshards") ? "BBSHARDS" : `+${format(G['cubeBonusMultiplier'][i] - 1, accuracy[i]! + augmentAccuracy, true)}`
+                    }
+                }
+                DOMCacheGetOrSet("cubeBlessingTotalAmount").textContent = inMod("bbshards") ? "BBSHARDS" : format(sumContents(cubeArray.slice(1) as number[]), 0, true);
+                break;
+            }
+            case 1: {
+                if (player.autoOpenTesseracts) {
+                    DOMCacheGetOrSet('openTesseracts').textContent = inMod("bbshards") ? "BBSHARDS" : `Auto Open ${format(player.openTesseracts, 0)}%`;
+                }
+                DOMCacheGetOrSet('tesseractQuantity').textContent = format(player.wowTesseracts, 0, true)
+                const tesseractArray = [null, player.tesseractBlessings.accelerator, player.tesseractBlessings.multiplier, player.tesseractBlessings.offering, player.tesseractBlessings.runeExp, player.tesseractBlessings.obtainium, player.tesseractBlessings.antSpeed, player.tesseractBlessings.antSacrifice, player.tesseractBlessings.antELO, player.tesseractBlessings.talismanBonus, player.tesseractBlessings.globalSpeed]
+                accuracy = [null, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+                for (let i = 1; i <= 10; i++) {
+                    let augmentAccuracy = 0;
+                    if (tesseractArray[i]! >= 1000 && i !== 6) {
+                        augmentAccuracy += 2;
+                    }
+                    DOMCacheGetOrSet(`tesseractBlessing${i}Amount`).textContent = inMod("bbshards") ? "BBSHARDS" : `x${format(tesseractArray[i], 0, true)}`
+                    DOMCacheGetOrSet(`tesseractBlessing${i}Effect`).textContent = inMod("bbshards") ? "BBSHARDS" : `+${format(100 * (G['tesseractBonusMultiplier'][i]! - 1), accuracy[i]! + augmentAccuracy, true)}%`
+                }
+                DOMCacheGetOrSet("tesseractBlessingTotalAmount").textContent = inMod("bbshards") ? "BBSHARDS" : format(sumContents(tesseractArray.slice(1) as number[]), 0, true);
+                break;
+            }
+            case 2: {
+                if (player.autoOpenHypercubes) {
+                    DOMCacheGetOrSet('openHypercubes').textContent = `Auto Open ${format(player.openHypercubes, 0)}%`;
+                }
+                DOMCacheGetOrSet('hypercubeQuantity').textContent = inMod("bbshards") ? "BBSHARDS" : format(player.wowHypercubes, 0, true)
+                const hypercubeArray = [null, player.hypercubeBlessings.accelerator, player.hypercubeBlessings.multiplier, player.hypercubeBlessings.offering, player.hypercubeBlessings.runeExp, player.hypercubeBlessings.obtainium, player.hypercubeBlessings.antSpeed, player.hypercubeBlessings.antSacrifice, player.hypercubeBlessings.antELO, player.hypercubeBlessings.talismanBonus, player.hypercubeBlessings.globalSpeed]
+                accuracy = [null, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+                for (let i = 1; i <= 10; i++) {
+                    let augmentAccuracy = 0;
+                    if (hypercubeArray[i]! >= 1000) {
+                        augmentAccuracy += 2;
+                    }
+                    DOMCacheGetOrSet(`hypercubeBlessing${i}Amount`).textContent = inMod("bbshards") ? "BBSHARDS" : `x${format(hypercubeArray[i], 0, true)}`
+                    DOMCacheGetOrSet(`hypercubeBlessing${i}Effect`).textContent = inMod("bbshards") ? "BBSHARDS" : `+${format(100 * (G['hypercubeBonusMultiplier'][i]! - 1), accuracy[i]! + augmentAccuracy, true)}%`
+                }
+                DOMCacheGetOrSet("hypercubeBlessingTotalAmount").textContent = inMod("bbshards") ? "BBSHARDS" : format(sumContents(hypercubeArray.slice(1) as number[]), 0, true);
+                break;
+            }
+            case 3: {
+                if (player.autoOpenPlatonicsCubes) {
+                    DOMCacheGetOrSet('openPlatonicCube').textContent = `Auto Open ${format(player.openPlatonicsCubes, 0)}%`;
+                }
+                DOMCacheGetOrSet('platonicQuantity').textContent = inMod("bbshards") ? "BBSHARDS" : format(player.wowPlatonicCubes, 0, true)
+                const platonicArray = [player.platonicBlessings.cubes, player.platonicBlessings.tesseracts, player.platonicBlessings.hypercubes, player.platonicBlessings.platonics, player.platonicBlessings.hypercubeBonus, player.platonicBlessings.taxes, player.platonicBlessings.scoreBonus, player.platonicBlessings.globalSpeed]
+                const DRThreshold = [4e6, 4e6, 4e6, 8e4, 1e4, 1e4, 1e4, 1e4]
+                accuracy = [5, 5, 5, 5, 2, 3, 3, 2]
+                for (let i = 0; i < platonicArray.length; i++) {
+                    let augmentAccuracy = 0;
+                    if (platonicArray[i] >= DRThreshold[i]) {
+                        augmentAccuracy += 1;
+                    }
+                    DOMCacheGetOrSet(`platonicBlessing${i + 1}Amount`).textContent = inMod("bbshards") ? "BBSHARDS" : `x${format(platonicArray[i], 0, true)}`
+                    DOMCacheGetOrSet(`platonicBlessing${i + 1}Effect`).textContent = inMod("bbshards") ? "BBSHARDS" : `+${format(100 * (G['platonicBonusMultiplier'][i] - 1), accuracy[i] + augmentAccuracy, true)}%`
+                }
+                DOMCacheGetOrSet("platonicBlessingTotalAmount").textContent = inMod("bbshards") ? "BBSHARDS" : format(sumContents(platonicArray), 0, true);
+                break;
+            }
+            case 4:
+                DOMCacheGetOrSet('cubeAmount2').textContent = `You have ${format(player.wowCubes, 0, true)} Wow! Cubes =)`
+                break;
+            case 5:
+                break;
+            case 6:
+                DOMCacheGetOrSet('hepteractQuantity').textContent = inMod("bbshards") ? "BBSHARDS" : format(player.wowAbyssals, 0, true)
+
+                //Update the grid
+                hepteractTypeList.forEach((type) => {
+                    UpdateHeptGridValues(type);
+                });
+
+                //orbs
+                DOMCacheGetOrSet('heptGridOrbBalance').textContent = inMod("bbshards") ? "BBSHARDS" : format(player.overfluxOrbs)
+                DOMCacheGetOrSet('heptGridOrbEffect').textContent = inMod("bbshards") ? "BBSHARDS" : format(100 * (-1 + calculateCubeQuarkMultiplier()), 2, true) + '%'
+
+                //powder
+                DOMCacheGetOrSet('heptGridPowderBalance').textContent = inMod("bbshards") ? "BBSHARDS" : format(player.overfluxPowder)
+                DOMCacheGetOrSet('heptGridPowderWarps').textContent = inMod("bbshards") ? "BBSHARDS" : format(player.dailyPowderResetUses)
+                break;
+            default:
+                // console.log(`player.subtabNumber (${player.subtabNumber}) was outside of the allowed range (${subTabsInMainTab(8).subTabList.length}) for the cube tab`);
+                break;
+        }
     }
 }
 
 const UpdateHeptGridValues = (type: hepteractTypes) => {
-    const text = type + 'ProgressBarText'
-    const bar = type + 'ProgressBar'
-    const textEl = document.getElementById(text)!
-    const barEl = document.getElementById(bar)!
-    const balance = player.hepteractCrafts[type].BAL
-    const cap = player.hepteractCrafts[type].CAP
-    const barWidth = Math.round((balance / cap) * 100)
+    const text = type + 'ProgressBarText';
+    const bar = type + 'ProgressBar';
+    const textEl = DOMCacheGetOrSet(text);
+    const barEl = DOMCacheGetOrSet(bar);
+    const unlocked = player.hepteractCrafts[type].UNLOCKED;
 
-    let barColor = "";
-    if (barWidth < 34) {
-        barColor = "red";
-    } else if (barWidth >= 34 && barWidth < 68) {
-        barColor = "#cca300";
+    if (!unlocked) {
+        textEl.textContent = 'LOCKED';
+        barEl.style.width = '100%';
+        barEl.style.backgroundColor = 'red';
     } else {
-        barColor = "green";
-    }
+        const balance = player.hepteractCrafts[type].BAL;
+        const cap = player.hepteractCrafts[type].CAP;
+        const barWidth = Math.round((balance / cap) * 100);
 
     textEl.textContent = inMod("bbshards")?"BBSHARDS": format(balance) + " / " + format(cap)
     barEl.style.width = barWidth + '%'
     barEl.style.backgroundColor = barColor
+        let barColor = '';
+        if (barWidth < 34) {
+            barColor = 'red';
+        } else if (barWidth >= 34 && barWidth < 68) {
+            barColor = '#cca300';
+        } else {
+            barColor = 'green';
+        }
+
+        textEl.textContent = format(balance) + ' / ' + format(cap);
+        barEl.style.width = barWidth + '%';
+        barEl.style.backgroundColor = barColor;
+    }
 }
 
 export const visualUpdateCorruptions = () => {
-    if (G['currentTab'] !== "traits")
+    if (G['currentTab'] !== 'traits') {
         return
+    }
 
     DOMCacheGetOrSet("autoAscendMetric").textContent = inMod("bbshards")?"BBSHARDS": format(player.autoAscendThreshold, 0, true)
     const metaData = CalcCorruptionStuff();
@@ -477,7 +524,7 @@ export const visualUpdateCorruptions = () => {
 }
 
 export const visualUpdateSettings = () => {
-    if (G['currentTab'] !== "settings")
+    if (G['currentTab'] !== 'settings') {
         return
     //I was unable to clean this up in a way that didn't somehow make it less clean, sorry.
     DOMCacheGetOrSet("prestigeCountStatistic").childNodes[1].textContent = inMod("bbshards")?"BBSHARDS": format(player.prestigeCount, 0, true)
@@ -504,15 +551,48 @@ export const visualUpdateSettings = () => {
     DOMCacheGetOrSet("quarktimeramount").textContent = inMod("bbshards")?"BBSHARDS":
         `Quarks on export: ${format(Math.floor(onExportQuarks * patreonLOL))} [Max ${format(Math.floor(maxExportQuarks * patreonLOL))}]`;
 
-    DOMCacheGetOrSet("goldenQuarkTimerDisplay").textContent = format(3600 - (player.quarkstimer % 3600.00001)) + "s until +" + format(patreonLOL, 2, true) + " export Golden Quark"
-    DOMCacheGetOrSet("goldenQuarkTimerAmount").textContent = 
-        `Golden Quarks on export: ${format(Math.floor(player.quarkstimer / 3600))} [Max ${format(Math.floor(quarkData.maxTime / 3600))}]`
+        DOMCacheGetOrSet('goldenQuarkTimerDisplay').textContent = format(3600 / Math.max(1, +player.singularityUpgrades.goldenQuarks3.getEffect().bonus) - (player.goldenQuarksTimer % (3600.00001 / Math.max(1,+player.singularityUpgrades.goldenQuarks3.getEffect().bonus)))) + 's until +' + format(patreonLOL, 2, true) + ' export Golden Quark'
+        DOMCacheGetOrSet('goldenQuarkTimerAmount').textContent =
+            `Golden Quarks on export: ${format(Math.floor(player.goldenQuarksTimer * +player.singularityUpgrades.goldenQuarks3.getEffect().bonus/ 3600) * patreonLOL, 2)} [Max ${format(Math.floor(168 * +player.singularityUpgrades.goldenQuarks3.getEffect().bonus * patreonLOL))}]`
+    }
+    if (player.subtabNumber === 2) {
+        loadStatisticsUpdate();
+    }
+}
 
+export const visualUpdateSingularity = () => {
+    if (G['currentTab'] !== 'singularity') {
+        return
+    }
+    if (player.subtabNumber === 0) {
+        DOMCacheGetOrSet('goldenQuarkamount').textContent = 'You have ' + format(player.goldenQuarks, 0, true) + ' Golden Quarks!'
+    }
+}
+
+export const visualUpdateOcteracts = () => {
+    if (G['currentTab'] !== 'singularity') {
+        return
+    }
+    DOMCacheGetOrSet('singOcts').textContent = format(player.wowOcteracts, 2, true, true, true)
+
+    const perSecond = octeractGainPerSecond();
+
+    DOMCacheGetOrSet('secondsPerOcteract').style.display = perSecond < 1 ? 'block' : 'none';
+    DOMCacheGetOrSet('sPO').textContent = format(1 / perSecond, 2, true);
+    DOMCacheGetOrSet('octeractPerSeconds').style.display = perSecond >= 1 ? 'block' : 'none';
+    DOMCacheGetOrSet('oPS').textContent = format(perSecond, 2, true);
+
+    const cTOCB = (calculateTotalOcteractCubeBonus() - 1) * 100;
+    const cTOQB = (calculateTotalOcteractQuarkBonus() - 1) * 100;
+    DOMCacheGetOrSet('totalOcts').textContent = `${format(player.totalWowOcteracts, 2, true, true, true)}`
+    DOMCacheGetOrSet('totalOcteractCubeBonus').style.display = cTOCB >= 0.001 ? 'block' : 'none';
+    DOMCacheGetOrSet('totalOcteractQuarkBonus').style.display = cTOQB >= 0.001 ? 'block' : 'none';
+    DOMCacheGetOrSet('octCubeBonus').textContent = `+${format(cTOCB, 3, true)}%`
+    DOMCacheGetOrSet('octQuarkBonus').textContent = `+${format(cTOQB, 3, true)}%`
 }
 
 export const visualUpdateShop = () => {
-    if (G['currentTab'] !== "shop")
-        return
+    if (G['currentTab'] !== 'shop') {return}
     DOMCacheGetOrSet("quarkamount").textContent = inMod("bbshards")?"BBSHARDS": "You have " + format(player.worlds) + " Quarks!"
     DOMCacheGetOrSet("offeringpotionowned").textContent = inMod("bbshards")?"BBSHARDS": "Own: " + format(player.shopUpgrades.offeringPotion)
     DOMCacheGetOrSet("obtainiumpotionowned").textContent = inMod("bbshards")?"BBSHARDS": "Own: " + format(player.shopUpgrades.obtainiumPotion)
@@ -522,7 +602,7 @@ export const visualUpdateShop = () => {
     for (const key of keys) {
         // Create a copy of shopItem instead of accessing many times
         const shopItem = shopData[key]
-        
+
         // Ignore all consumables, to be handled above, since they're different.
         if (shopItem.type === shopUpgradeTypes.UPGRADE) {
             // Case: If max level is 1, then it can be considered a boolean "bought" or "not bought" item
@@ -536,29 +616,155 @@ export const visualUpdateShop = () => {
                 DOMCacheGetOrSet(`${key}Level`).textContent = inMod("bbshards")?"BBSHARDS":"Level " + format(player.shopUpgrades[key]) + "/" + format(shopItem.maxLevel);
             // Handles Button - max level needs no price indicator, otherwise it's necessary
 
-            const buyAmount = G['shopBuyMax']? Math.max(shopData[key].maxLevel - player.shopUpgrades[key], 1): 1;
+            const buyAmount = player.shopBuyMaxToggle? Math.max(shopData[key].maxLevel - player.shopUpgrades[key], 1): 1;
             const metaData:IMultiBuy = calculateSummationNonLinear(player.shopUpgrades[key], shopData[key].price, +player.worlds, shopData[key].priceIncrease / shopData[key].price, buyAmount)
-            
-            if (!G['shopBuyMax']) {
-                player.shopUpgrades[key] === shopItem.maxLevel ?
-                    DOMCacheGetOrSet(`${key}Button`).textContent = inMod("bbshards")?"BBSHARDS":"Maxed!":
-                    DOMCacheGetOrSet(`${key}Button`).textContent = inMod("bbshards")?"BBSHARDS":"Upgrade for " + format(getShopCosts(key)) + " Quarks";
+
+            if (!player.shopBuyMaxToggle) {
+                DOMCacheGetOrSet(`${key}Button`).textContent = player.shopUpgrades[key] >= shopItem.maxLevel ? 'Maxed!' : 'Upgrade for ' + format(getShopCosts(key)) + ' Quarks';
+            } else {
+                DOMCacheGetOrSet(`${key}Button`).textContent = player.shopUpgrades[key] >= shopItem.maxLevel ? 'Maxed!' : '+' + format(metaData.levelCanBuy - player.shopUpgrades[key], 0, true) + ' for ' + format(metaData.cost) + ' Quarks';
             }
-            
-            else {
-                player.shopUpgrades[key] === shopItem.maxLevel ?
-                    DOMCacheGetOrSet(`${key}Button`).textContent = inMod("bbshards")?"BBSHARDS":"Maxed!":
-                    DOMCacheGetOrSet(`${key}Button`).textContent = inMod("bbshards")?"BBSHARDS":"Upgrade +"+format(metaData.levelCanBuy - player.shopUpgrades[key],0,true)+ " for " + format(metaData.cost,0,true) + " Quarks";
+
+            const shopUnlock1 = document.getElementsByClassName('chal8Shop') as HTMLCollectionOf<HTMLElement>;
+            const shopUnlock2 = document.getElementsByClassName('chal9Shop') as HTMLCollectionOf<HTMLElement>;
+            const shopUnlock3 = document.getElementsByClassName('ascendunlockShop') as HTMLCollectionOf<HTMLElement>;
+            const shopUnlock4 = document.getElementsByClassName('chal11Shop') as HTMLCollectionOf<HTMLElement>;
+            const shopUnlock5 = document.getElementsByClassName('chal12Shop') as HTMLCollectionOf<HTMLElement>;
+            const shopUnlock6 = document.getElementsByClassName('chal13Shop') as HTMLCollectionOf<HTMLElement>;
+            const shopUnlock7 = document.getElementsByClassName('chal14Shop') as HTMLCollectionOf<HTMLElement>;
+            const shopUnlock8 = document.getElementsByClassName('hepteractsShop') as HTMLCollectionOf<HTMLElement>;
+            const singularityShopItems = document.getElementsByClassName('singularityShopUnlock') as HTMLCollectionOf<HTMLElement>;
+            const singularityShopItems2 = document.getElementsByClassName('singularityShopUnlock2') as HTMLCollectionOf<HTMLElement>;
+            const singularityShopItems3 = document.getElementsByClassName('singularityShopUnlock3') as HTMLCollectionOf<HTMLElement>;
+
+            if (player.shopHideToggle && player.shopUpgrades[key] >= shopItem.maxLevel && !shopData[key].refundable) {
+                if (player.singularityCount >= 20) {
+                    shopData.offeringAuto.refundable = false;
+                    shopData.offeringEX.refundable = false;
+                    shopData.obtainiumAuto.refundable = false;
+                    shopData.obtainiumEX.refundable = false;
+                    shopData.antSpeed.refundable = false;
+                    shopData.cashGrab.refundable = false;
+                } else {
+                    shopData.offeringAuto.refundable = true;
+                    shopData.offeringEX.refundable = true;
+                    shopData.obtainiumAuto.refundable = true;
+                    shopData.obtainiumEX.refundable = true;
+                    shopData.antSpeed.refundable = true;
+                    shopData.cashGrab.refundable = true;
+                }
+                DOMCacheGetOrSet(`${key}Hide`).style.display = 'none';
+            } else if (player.shopHideToggle && (player.shopUpgrades[key] < shopItem.maxLevel || shopData[key].refundable)) {
+                DOMCacheGetOrSet(`${key}Hide`).style.display = 'block'; //This checks if you have something you are not supposed to have or supposed to.
+                for (const i of Array.from(shopUnlock1)) {
+                    if (i.style.display === 'block' && player.achievements[127] != 1) {
+                        i.style.display = 'none';
+                    }
+                }
+                for (const i of Array.from(shopUnlock2)) {
+                    if (i.style.display === 'block' && player.achievements[134] != 1) {
+                        i.style.display = 'none';
+                    }
+                }
+                for (const i of Array.from(shopUnlock3)) {
+                    if (i.style.display === 'block' && player.ascensionCount === 0) {
+                        i.style.display = 'none';
+                    }
+                }
+                for (const i of Array.from(shopUnlock4)) {
+                    if (i.style.display === 'block' && player.challengecompletions[11] === 0) {
+                        i.style.display = 'none';
+                    }
+                }
+                for (const i of Array.from(shopUnlock5)) {
+                    if (i.style.display === 'block' && player.challengecompletions[12] === 0) {
+                        i.style.display = 'none';
+                    }
+                }
+                for (const i of Array.from(shopUnlock6)) {
+                    if (i.style.display === 'block' && player.challengecompletions[13] === 0) {
+                        i.style.display = 'none';
+                    }
+                }
+                for (const i of Array.from(shopUnlock7)) {
+                    if (i.style.display === 'block' && player.challengecompletions[14] === 0) {
+                        i.style.display = 'none';
+                    }
+                }
+                for (const i of Array.from(shopUnlock8)) {
+                    if (i.style.display === 'block' && player.challenge15Exponent < 1e15) {
+                        i.style.display = 'none';
+                    }
+                }
+                for (const i of Array.from(singularityShopItems)) {
+                    if (i.style.display === 'block' && !player.singularityUpgrades.wowPass.getEffect().bonus) {
+                        i.style.display = 'none';
+                    }
+                }
+                for (const i of Array.from(singularityShopItems2)) {
+                    if (i.style.display === 'block' && !player.singularityUpgrades.wowPass2.getEffect().bonus) {
+                        i.style.display = 'none';
+                    }
+                }
+                for (const i of Array.from(singularityShopItems3)) {
+                    if (i.style.display === 'block' && !player.singularityUpgrades.wowPass3.getEffect().bonus) {
+                        i.style.display = 'none';
+                    }
+                }
+            } else if (!player.shopHideToggle) {
+                DOMCacheGetOrSet('instantChallengeHide').style.display = 'block';
+                DOMCacheGetOrSet('calculatorHide').style.display = 'block';
+                if (shopData.offeringAuto.refundable === false) {
+                    DOMCacheGetOrSet('offeringAutoHide').style.display = 'block';
+                    DOMCacheGetOrSet('offeringEXHide').style.display = 'block';
+                    DOMCacheGetOrSet('obtainiumAutoHide').style.display = 'block';
+                    DOMCacheGetOrSet('obtainiumEXHide').style.display = 'block';
+                    DOMCacheGetOrSet('antSpeedHide').style.display = 'block';
+                    DOMCacheGetOrSet('cashGrabHide').style.display = 'block';
+                }
+                for (const i of Array.from(shopUnlock1)) {
+                    i.style.display = player.achievements[127] === 1 ? 'block' : 'none';
+                }
+                for (const i of Array.from(shopUnlock2)) {
+                    i.style.display = player.achievements[134] === 1 ? 'block' : 'none';
+                }
+                for (const i of Array.from(shopUnlock3)) {
+                    i.style.display = player.ascensionCount > 0 ? 'block' : 'none';
+                }
+                for (const i of Array.from(shopUnlock4)) {
+                    i.style.display = player.challengecompletions[11] > 0 ? 'block' : 'none';
+                }
+                for (const i of Array.from(shopUnlock5)) {
+                    i.style.display = player.challengecompletions[12] > 0 ? 'block' : 'none';
+                }
+                for (const i of Array.from(shopUnlock6)) {
+                    i.style.display = player.challengecompletions[13] > 0 ? 'block' : 'none';
+                }
+                for (const i of Array.from(shopUnlock7)) {
+                    i.style.display = player.challengecompletions[14] > 0 ? 'block' : 'none';
+                }
+                for (const i of Array.from(shopUnlock8)) {
+                    i.style.display = player.challenge15Exponent >= 1e15 ? 'block' : 'none';
+                }
+                for (const i of Array.from(singularityShopItems)) {
+                    i.style.display = player.singularityUpgrades.wowPass.getEffect().bonus ? 'block' : 'none';
+                }
+                for (const i of Array.from(singularityShopItems2)) {
+                    i.style.display = player.singularityUpgrades.wowPass2.getEffect().bonus ? 'block' : 'none';
+                }
+                for (const i of Array.from(singularityShopItems3)) {
+                    i.style.display = player.singularityUpgrades.wowPass3.getEffect().bonus ? 'block' : 'none';
+                }
             }
         }
     }
 
-    DOMCacheGetOrSet("buySingularityQuarksAmount").textContent = `Owned: ${format(player.goldenQuarks)}`
-    DOMCacheGetOrSet("buySingularityQuarksButton").textContent = `Buy! ${format(getGoldenQuarkCost().cost)} Quarks Each`
+    DOMCacheGetOrSet('buySingularityQuarksAmount').textContent = `${player.goldenQuarks < 1000 ? 'Owned: ' : ''}${format(player.goldenQuarks)}`
+    DOMCacheGetOrSet('buySingularityQuarksButton').textContent = `Buy! ${format(getGoldenQuarkCost().cost)} Quarks Each`
 }
 
 export const visualUpdateMods = ()=>{
     for(let i=1;i<=modNames.length;i++){
-        DOMCacheGetOrSet("modtoggle"+i).textContent = inMod("bbshards")?"BBSHARDS":inMod(modIds[i-1])?"[ON]":"[OFF]"
+        DOMCacheGetOrSet(`modtoggle${i}`).textContent = inMod("bbshards")?"BBSHARDS":inMod(modIds[i-1])?"[ON]":"[OFF]"
     }
 }
