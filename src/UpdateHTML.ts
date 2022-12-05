@@ -1019,7 +1019,7 @@ const tabColors: { [key: string]: string } = {
     shop: 'limegreen'
 }
 
-export const changeTabColor = () => {
+export const changeTabColor: () => void = () => {
     const tab = DOMCacheGetOrSet('tabBorder');
     const color = G['currentTab'] in tabColors
         ? tabColors[G['currentTab']]

@@ -15,7 +15,7 @@ import { corruptionCleanseConfirm, corruptionDisplay } from './Corruptions'
 import { exportSynergism, updateSaveString, promocodes, promocodesPrompt, promocodesInfo, importSynergism, resetGame, reloadDeleteGame } from './ImportExport'
 import { resetHistoryTogglePerSecond } from './History'
 import { resetShopUpgrades, shopDescriptions, buyShopUpgrades, buyConsumable, useConsumable, shopData, shopUpgradeTypes } from './Shop'
-import { Globals as G } from './Variables';
+import { Globals as G, modNames, modIds } from './Variables';
 import { changeTabColor } from './UpdateHTML'
 import { hepteractDescriptions, hepteractToOverfluxOrbDescription, tradeHepteractToOverfluxOrb, overfluxPowderDescription, overfluxPowderWarp, toggleAutoBuyOrbs } from './Hepteracts'
 import { exitOffline, forcedDailyReset, timeWarp } from './Calculate'
